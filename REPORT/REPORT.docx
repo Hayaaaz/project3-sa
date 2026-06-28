@@ -1,0 +1,107 @@
+Security Anomaly Detection Pipeline — Project Report
+
+Overview
+In this project, I built a complete security anomaly detection pipeline that analyzes authentication logs and identifies suspicious behavior using four detectors: impossible travel, off-hours privileged access, brute-force/password-spray attempts, and privilege escalation. I implemented all logic in a single Python file (`catch.py`) and evaluated the system using precision and recall against a provided ground-truth dataset.
+
+My goal was to design detectors that are explainable, tunable, and realistic for a security operations environment. Throughout the project, I focused on understanding each pattern deeply, writing clean functions, and tuning thresholds to balance detection coverage with operational noise.
+
+---
+
+Data Loading
+I started by writing functions to load `auth_events.csv` and `ground_truth.csv`. I used Python’s `csv.DictReader` to parse each row into dictionaries and performed basic sanity checks to skip malformed entries. This gave me two clean lists:
+
+- events: all authentication events  
+- labels: the ground-truth attack annotations  
+
+This step ensured that every detector worked on consistent, structured data.
+
+---
+
+Detector 1: Impossible Travel
+The impossible travel detector identifies logins that imply physically impossible movement between locations. I implemented the haversine formula to calculate geographic distance between two latitude/longitude pairs and computed the implied travel speed between consecutive successful logins for each user.
+
+If the speed exceeded a threshold (initially 900 km/h), I flagged an alert.
+
+This detector taught me how sensitive geolocation-based detection can be. Lower thresholds catch more attacks but generate more false positives; higher thresholds reduce noise but miss attacks.
+
+---
+
+Detector 2: Off-Hours Privileged Access
+This detector flags admin activity outside normal business hours. I defined a configurable window (8:00–18:00) and ignored a known legitimate nightly service account.
+
+This pattern is simple but important: privileged actions at unusual times often indicate compromised credentials or misuse.
+
+---
+
+Detector 3: Brute Force and Password Spray
+This detector identifies two common attack patterns:
+
+- Brute force: many failures against one user  
+- Password spray: failures across many users from one IP  
+
+I stored full event objects (not just counts) to ensure each alert included timestamps and user information. This was important for scoring later.
+
+This detector required careful debugging. At one point, I accidentally stored integers instead of event lists, which caused errors when calculating lengths. I corrected this by storing full event dictionaries and using the last event’s timestamp for scoring.
+
+---
+
+Detector 4: Privilege Escalation
+This detector tracks role changes over time. If a user who previously acted as a normal employee suddenly performs an admin action, I flag it as potential privilege escalation.
+
+This pattern is subtle but critical in real identity security.
+
+---
+
+Scoring: Precision and Recall
+After combining all alerts from all detectors, I compared them to the ground truth using timestamp/user pairs. I computed:
+
+- True positives (TP) 
+- False positives (FP)  
+- False negatives (FN) 
+- Precision = TP / (TP + FP)  
+- **Recall = TP / (TP + FN)  
+
+### Final Results
+
+True positives: 5
+False positives: 2
+False negatives: 5
+Precision: 0.71
+Recall: 0.50
+
+
+
+These numbers represent a strong balance: 71% of alerts were correct, and the system caught half of all real attacks. This is realistic for anomaly-based detection, which is inherently noisy and incomplete.
+
+---
+
+hreshold Tuning
+I experimented with different thresholds for each detector:
+
+- Lower impossible-travel thresholds increased recall but produced more false positives.  
+- Higher brute-force thresholds reduced noise but missed attacks.  
+- Expanding the off-hours window reduced alerts but weakened detection.  
+
+I ultimately chose thresholds that balanced detection coverage with operational noise. My goal was not perfection but explainability and practicality.
+
+---
+
+Use of AI (Copilot)
+I used Copilot throughout the project as a supporting tool, not as a replacement for my own reasoning.
+
+Copilot helped me:
+
+- understand math concepts like the haversine formula  
+- debug errors by explaining why certain variables were `None` or incorrectly typed  
+- clarify parts of the logic when I wasn’t sure why a detector behaved a certain way  
+- break down complex steps into smaller, understandable pieces  
+
+It was especially helpful when I needed to interpret error messages or verify that my approach to scoring made sense. However, I wrote all the code myself, made all design decisions, and tuned the thresholds based on my own judgment.
+
+---
+
+Conclusion
+This project taught me how to design, implement, and evaluate real anomaly detection logic. I built four detectors, tuned them, and produced a scoring system that reflects real-world tradeoffs between false positives and false negatives.
+
+My final precision and recall demonstrate a balanced, explainable system that I can defend to a security team or leadership audience. The process strengthened my understanding of identity security, anomaly detection, and practical engineering judgment.
+
