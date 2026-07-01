@@ -1,10 +1,9 @@
 This project examines login activity and seeks signs of suspicious behavior.  
-I built a small detection system in Python that checks for four types of unusual activity:
+I built a small detection system in Python that checks for three types of unusual activity:
 
 1. **Impossible Travel** – a user logs in from two faraway places too quickly  
 2. **Off-Hours Admin Activity** – an admin account is used late at night or outside normal work hours  
 3. **Brute Force / Password Spray** – many failed login attempts on one user or from one IP  
-4. **Privilege Escalation** – a normal user suddenly performs admin actions
 
 The script reads two files:
 - `auth_events.csv` — login events  
@@ -18,13 +17,13 @@ After running all detectors, the script shows:
 - **recall** (how many real attacks were found)
 
   ### Example Output
-True positives: 5
-False positives: 2
-False negatives: 5
-Precision: 0.71
-Recall: 0.50
+True positives: 4
+False positives: 1
+False negatives: 6
+Precision: 0.80
+Recall: 0.40
 
   
 ### How to Run
 Clone the repo and run:
-python3 catch.py auth_events.csv --truth ground_truth.csv
+python3 code/catch.py code/auth_events.csv --truth code/ground_truth.csv
