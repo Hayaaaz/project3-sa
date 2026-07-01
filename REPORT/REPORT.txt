@@ -99,8 +99,31 @@ I experimented with different thresholds for each detector:
 
 I ultimately chose thresholds that balanced detection coverage with operational noise.
 My goal was not perfection but explainability and practicality.
-
-_________________________________________________________________________________________________________________
+_______________________________________________________________________________________________________________________________________________________________________________________
+Board Facing Explanation (Non-Technical)
+Our authentication monitoring system looks for unusual behavior in employee logins. It checks for things like logging in from two far apart cities too quickly, using administrator privileges late at night, or repeated failed login attempts that may indicate an attacker trying to guess passwords.
+When the system detects suspicious activity, it generates an alert for the security team to review. The system is designed to reduce risk by detecting early signs of account compromise while keeping false alarms low enough for staff to respond effectively.
+This helps protect the organization from unauthorized access, data theft, and misuse of administrative privileges.
+_______________________________________________________________________________________________________________________________________________________________________________________
+Findings Summary
+Detected Attacks
+The system successfully detected:
+•	multiple impossible travel events
+•	off hours admin activity
+•	brute force attempts
+•	password spray attempts
+Missed Attacks
+Some attacks were missed due to:
+•	borderline travel speeds
+•	admin activity near the edge of business hours
+•	low volume brute force attempts
+Interpretation
+Precision and recall show that the system is:
+•	reasonably accurate
+•	explainable
+•	tunable
+•	realistic for operational use
+__________________________________________________________________________________________________________________________________________________________________________________________
 
 Use of AI (Copilot)
 I used Copilot throughout the project as a supporting tool, not as a replacement for my own reasoning.
