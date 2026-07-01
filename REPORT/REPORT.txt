@@ -76,13 +76,13 @@ After combining alerts from all detectors, I compared them against the ground tr
 
 ### Final Results
 
-True positives: 5
-False positives: 2
-False negatives: 5
-Precision: 0.71
-Recall: 0.50
+True positives: 4
+False positives: 1
+False negatives: 6
+Precision: 0.80
+Recall: 0.40
 _________________________________________________________________________________________________________________________________________________________________________________________
-These numbers represent a strong balance: 71% of alerts were correct, and the system caught half of all real attacks. This is realistic for anomaly-based detection, which is inherently noisy and incomplete.
+These numbers represent a strong balance: 80% of alerts were correct, and the system caught 40% of all real attacks. This is realistic for anomaly‑based detection, which is inherently noisy and incomplete.
 __________________________________________________________________________________________________________________________________________________________________________________________
 Threshold Tuning
 I experimented with different thresholds for each detector:
@@ -133,4 +133,4 @@ It was especially helpful when I needed to interpret error messages or verify th
 
 ============================================================================================================================================================================================
 Conclusion
-This project strengthened my understanding of identity security and anomaly detection. I built four detectors, tuned them, and evaluated their performance using precision and recall. The final system is explainable and practical, demonstrating the real-world trade-offs between attack detection and noise minimization.
+This project strengthened my understanding of identity security and anomaly detection. I built three detectors, tuned them, and evaluated their performance using precision and recall. The final system is explainable and practical, demonstrating the real-world trade-offs between attack detection and noise minimization.
