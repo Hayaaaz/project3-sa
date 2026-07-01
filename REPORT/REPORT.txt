@@ -1,59 +1,77 @@
-Security Anomaly Detection Pipeline — Project Report
-
+**Security Anomaly Detection Pipeline — Project Report**
+==================================================================================================================================================
 Overview
 In this project, I built a complete security anomaly detection pipeline that analyzes authentication logs and identifies suspicious behavior using four detectors: impossible travel, off-hours privileged access, brute-force/password-spray attempts, and privilege escalation. I implemented all logic in a single Python file (`catch.py`) and evaluated the system using precision and recall against a provided ground-truth dataset.
 
-My goal was to design detectors that are explainable, tunable, and realistic for a security operations environment. Throughout the project, I focused on understanding each pattern deeply, writing clean functions, and tuning thresholds to balance detection coverage with operational noise.
+My goal was to design detectors that are explainable, tunable, and realistic for a security operations environment. Throughout the project, I focused on understanding each pattern in depth, writing clean functions, and tuning thresholds to balance detection coverage and operational noise.
+==================================================================================================================================================
+1. Parser: load_auth_events()
+This function loads the authentication events from the CSV file.
+I open the file safely, read each row as a dictionary, and skip any row that’s missing the required fields (ts or user). Every valid row gets added to a list called events. By the end, I return a clean list of structured authentication events that all detectors can rely on.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+2. Parser: load_ground_truth()
+This function loads the ground‑truth attack labels.
+It works the same way as the event loader: open the CSV, read each row, and skip any row missing ts, user, or label. Every valid label is added to a list. This ensures that the scoring step compares only against clean, valid truth data.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+3. Haversine Function: haversine()
+This function calculates the distance between two locations on Earth.
+I convert the latitude and longitude values to radians, apply the haversine formula, and multiply by Earth’s radius to get the distance in kilometers. This gives me a realistic physical distance between two login locations, which is essential for impossible‑travel detection.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+4. Impossible Travel: detect_impossible_travel()
+First, I group all successful logins by user, because impossible travel only makes sense when comparing a user’s own consecutive logins.
+Then I sort each user’s events by timestamp so that comparisons occur in the correct order.
 
----
+For each pair of consecutive logins, I calculate the time difference and skip any invalid or zero‑time gaps. I compute the geographic distance using the haversine function, convert the time gap into hours, and divide the distance by hours to get the implied travel speed.
 
-Data Loading
-I started by writing functions to load `auth_events.csv` and `ground_truth.csv`. I used Python’s `csv.DictReader` to parse each row into dictionaries and performed basic sanity checks to skip malformed entries. This gave me two clean lists:
+If the speed exceeds the threshold (900 km/h), I create an alert that includes the user, timestamp, previous city, current city, time gap, distance, and calculated speed. This makes the alert easy to understand and verify.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+5. Off‑Hours Admin: detect_off_hours_admin()
+This detector looks for admin activity outside normal business hours.
+I check each event and ignore anything that isn’t an admin action. I also skip the nightly service account (svc_nightly) because it’s expected to run after hours.
 
-- events: all authentication events  
-- labels: the ground-truth attack annotations  
+I parse the timestamp, extract the hour, and check whether it falls outside the configured window (8:00–18:00). If it does, I create an alert with the user, timestamp, city, country, and hour. This helps identify suspicious admin activity at unusual times.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+6. Brute‑Force & Password‑Spray: detect_bruteforce()
+I start by scanning all events and keeping only failed logins.
+For each failure, I store the full event in two places: one dictionary keyed by user and another keyed by source IP. Storing full events (not just counts) makes the alerts more informative later.
 
-This step ensured that every detector worked on consistent, structured data.
+-For brute-force attacks, I look for users with at least 10 failures. When I find one, I create an alert using the last failure’s timestamp and include the failure count.
 
----
+-For password spray, I look for IP addresses that have failed against at least 5 unique users. If an IP meets that threshold, I create an alert using the timestamp of the last failure and include the number of unique users targeted.
 
-Detector 1: Impossible Travel
-The impossible travel detector identifies logins that imply physically impossible movement between locations. I implemented the haversine formula to calculate geographic distance between two latitude/longitude pairs and computed the implied travel speed between consecutive successful logins for each user.
+This detector covers both common attack patterns: many failures on one account (brute force) and few failures across many accounts (spray).
+--------------------------------------------------------------------------------------------------------------------------------------------------
+7. Privilege Escalation: detect_privilege_escalation()
+I track every role a user has ever had by keeping a set of roles for each user.
+Whenever I see a new event, I add its role to the user’s role history. If the current event is an admin action and the user has previously held a non‑admin role, I flag it as a privilege escalation. The alert includes the user, timestamp, location, and the list of roles seen.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+8. Scoring: score_alerts()
+I convert the ground‑truth labels into a set of (timestamp, user) pairs.
+I do the same for my alerts. Using sets makes comparisons simple and accurate.
 
-If the speed exceeded a threshold (initially 900 km/h), I flagged an alert.
+True positives are alerts that match the truth.
 
-This detector taught me how sensitive geolocation-based detection can be. Lower thresholds catch more attacks but generate more false positives; higher thresholds reduce noise but miss attacks.
+False positives are alerts that don’t appear in truth.
 
----
+False negatives are true entries that weren’t alerted.
 
-Detector 2: Off-Hours Privileged Access
-This detector flags admin activity outside normal business hours. I defined a configurable window (8:00–18:00) and ignored a known legitimate nightly service account.
+Then I compute precision and recall using the standard formulas.
+The function returns all three sets, along with the precision and recall values.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+9. Main Program: main()
+The main function ties everything together.
+It reads command‑line arguments, loads the authentication events, loads ground truth if provided, and runs all detectors. It prints the number of alerts from each detector, combines them, scores them, and prints the final precision, recall, and FP/FN counts.
 
-This pattern is simple but important: privileged actions at unusual times often indicate compromised credentials or misuse.
+***This makes the entire pipeline reproducible and easy to run with a single command.***
+-To reproduce my results:
+#Code#
+===========================================================================
+python3 catch.py code/auth_events.csv --truth code/ground_truth.csv
+===========================================================================
 
----
-
-Detector 3: Brute Force and Password Spray
-This detector identifies two common attack patterns:
-
-- Brute force: many failures against one user  
-- Password spray: failures across many users from one IP  
-
-I stored full event objects (not just counts) to ensure each alert included timestamps and user information. This was important for scoring later.
-
-This detector required careful debugging. At one point, I accidentally stored integers instead of event lists, which caused errors when calculating lengths. I corrected this by storing full event dictionaries and using the last event’s timestamp for scoring.
-
----
-
-Detector 4: Privilege Escalation
-This detector tracks role changes over time. If a user who previously acted as a normal employee suddenly performs an admin action, I flag it as potential privilege escalation.
-
-This pattern is subtle but critical in real identity security.
-
----
 
 Scoring: Precision and Recall
-After combining all alerts from all detectors, I compared them to the ground truth using timestamp/user pairs. I computed:
+After combining alerts from all detectors, I compared them against the ground truth using timestamp-user pairs. I computed:
 
 - True positives (TP) 
 - False positives (FP)  
@@ -68,23 +86,21 @@ False positives: 2
 False negatives: 5
 Precision: 0.71
 Recall: 0.50
-
-
-
+_________________________________________________________________________________________________________________________________________________________________________________________
 These numbers represent a strong balance: 71% of alerts were correct, and the system caught half of all real attacks. This is realistic for anomaly-based detection, which is inherently noisy and incomplete.
+__________________________________________________________________________________________________________________________________________________________________________________________
 
----
-
-hreshold Tuning
+Threshold Tuning
 I experimented with different thresholds for each detector:
 
 - Lower impossible-travel thresholds increased recall but produced more false positives.  
 - Higher brute-force thresholds reduced noise but missed attacks.  
 - Expanding the off-hours window reduced alerts but weakened detection.  
 
-I ultimately chose thresholds that balanced detection coverage with operational noise. My goal was not perfection but explainability and practicality.
+I ultimately chose thresholds that balanced detection coverage with operational noise.
+My goal was not perfection but explainability and practicality.
 
----
+_________________________________________________________________________________________________________________
 
 Use of AI (Copilot)
 I used Copilot throughout the project as a supporting tool, not as a replacement for my own reasoning.
@@ -98,10 +114,7 @@ Copilot helped me:
 
 It was especially helpful when I needed to interpret error messages or verify that my approach to scoring made sense. However, I wrote all the code myself, made all design decisions, and tuned the thresholds based on my own judgment.
 
----
-
+============================================================================================================================================================================================
 Conclusion
-This project taught me how to design, implement, and evaluate real anomaly detection logic. I built four detectors, tuned them, and produced a scoring system that reflects real-world tradeoffs between false positives and false negatives.
-
-My final precision and recall demonstrate a balanced, explainable system that I can defend to a security team or leadership audience. The process strengthened my understanding of identity security, anomaly detection, and practical engineering judgment.
-
+This project strengthened my understanding of identity security and anomaly detection. I built four detectors, tuned them, and evaluated their performance using precision and recall. The final system is explainable and practical, demonstrating the real-world trade-offs between attack detection and noise minimization.
+===========================================================================v================================================================================================================
