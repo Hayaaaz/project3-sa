@@ -230,7 +230,7 @@ def main():
 
      
      #Run all detectors
-    impossible_alerts = detect_impossible_travel(events, threshold_kmh=700)
+    impossible_alerts = detect_impossible_travel(events, threshold_kmh=900)
     print(f"Impossible travel alerts: {len(impossible_alerts)}")
 
     off_hours_alerts = detect_off_hours_admin(events, start_hour=8, end_hour=18)
