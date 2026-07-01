@@ -233,9 +233,9 @@ def main():
     impossible_alerts = detect_impossible_travel(events, threshold_kmh=700)
     print(f"Impossible travel alerts: {len(impossible_alerts)}")
 
-    off_hours_alerts = detect_off_hours_admin(events, start_hour=9, end_hour=17)
+    off_hours_alerts = detect_off_hours_admin(events, start_hour=8, end_hour=18)
     print(f"Off-hours admin alerts: {len(off_hours_alerts)}")
-    brute_alerts = detect_bruteforce(events, fail_threshold=8, spray_threshold=5)
+    brute_alerts = detect_bruteforce(events, fail_threshold=10, spray_threshold=5)
     print(f"Brute-force / spray alerts: {len(brute_alerts)}")
    
     #Combine all alerts
