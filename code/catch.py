@@ -175,36 +175,6 @@ def detect_bruteforce(events, fail_threshold=10, spray_threshold=5):
     return alerts
 
 
-#Detect privilege escalation by tracking role changes
-def detect_privilege_escalation(events):
-    alerts = []
-
-    # Track each user's roles over time
-    user_roles = {}                          #Track roles seen for each user
-
-    for e in events:
-        user = e["user"]
-        role = e["role"]
-
-        # Initialize role history
-        if user not in user_roles:        
-            user_roles[user] = set()
-
-        # Add this role to the user's history
-        user_roles[user].add(role)
-
-        # If this event is admin but user never had admin before → escalation
-        if role == "admin" and len(user_roles[user]) > 1:
-            alerts.append({
-                "detector": "privilege_escalation",
-                "user": user,
-                "ts": e["ts"],
-                "city": e["city"],
-                "country": e["country"],
-                "roles_seen": list(user_roles[user])
-            })
-
-    return alerts
 
 #Score alerts against ground truth using precision and recall
 def score_alerts(alerts, truth):                              #Convert truth to set
@@ -267,15 +237,12 @@ def main():
     print(f"Off-hours admin alerts: {len(off_hours_alerts)}")
     brute_alerts = detect_bruteforce(events, fail_threshold=10, spray_threshold=5)
     print(f"Brute-force / spray alerts: {len(brute_alerts)}")
-    priv_alerts = detect_privilege_escalation(events)
-    print(f"Privilege escalation alerts: {len(priv_alerts)}")
-
+   
     #Combine all alerts
     all_alerts = (
         impossible_alerts +
         off_hours_alerts +
-        brute_alerts +
-        priv_alerts
+        brute_alerts 
     )
 
     #score alerts
