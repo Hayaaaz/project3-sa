@@ -1,7 +1,7 @@
 **Security Anomaly Detection Pipeline — Project Report**
 ==================================================================================================================================================
 Overview
-In this project, I built a complete security anomaly detection pipeline that analyzes authentication logs and identifies suspicious behavior using four detectors: impossible travel, off-hours privileged access, brute-force/password-spray attempts, and privilege escalation. I implemented all logic in a single Python file (`catch.py`) and evaluated the system using precision and recall against a provided ground-truth dataset.
+In this project, I built a complete security anomaly detection pipeline that analyzes authentication logs and identifies suspicious behavior using three detectors: impossible travel, off-hours privileged access, and brute-force/password-spray attempts. I implemented all logic in a single Python file (`catch.py`) and evaluated the system using precision and recall against a provided ground-truth dataset.
 
 My goal was to design detectors that are explainable, tunable, and realistic for a security operations environment. Throughout the project, I focused on understanding each pattern in depth, writing clean functions, and tuning thresholds to balance detection coverage and operational noise.
 ==================================================================================================================================================
@@ -41,11 +41,7 @@ For each failure, I store the full event in two places: one dictionary keyed by 
 
 This detector covers both common attack patterns: many failures on one account (brute force) and few failures across many accounts (spray).
 --------------------------------------------------------------------------------------------------------------------------------------------------
-7. Privilege Escalation: detect_privilege_escalation()
-I track every role a user has ever had by keeping a set of roles for each user.
-Whenever I see a new event, I add its role to the user’s role history. If the current event is an admin action and the user has previously held a non‑admin role, I flag it as a privilege escalation. The alert includes the user, timestamp, location, and the list of roles seen.
---------------------------------------------------------------------------------------------------------------------------------------------------
-8. Scoring: score_alerts()
+7. Scoring: score_alerts()
 I convert the ground‑truth labels into a set of (timestamp, user) pairs.
 I do the same for my alerts. Using sets makes comparisons simple and accurate.
 
@@ -58,16 +54,15 @@ False negatives are true entries that weren’t alerted.
 Then I compute precision and recall using the standard formulas.
 The function returns all three sets, along with the precision and recall values.
 --------------------------------------------------------------------------------------------------------------------------------------------------
-9. Main Program: main()
+8. Main Program: main()
 The main function ties everything together.
 It reads command‑line arguments, loads the authentication events, loads ground truth if provided, and runs all detectors. It prints the number of alerts from each detector, combines them, scores them, and prints the final precision, recall, and FP/FN counts.
 
 ***This makes the entire pipeline reproducible and easy to run with a single command.***
 -To reproduce my results:
-#Code#
-===========================================================================
+
 python3 catch.py code/auth_events.csv --truth code/ground_truth.csv
-===========================================================================
+
 
 
 Scoring: Precision and Recall
@@ -77,7 +72,7 @@ After combining alerts from all detectors, I compared them against the ground tr
 - False positives (FP)  
 - False negatives (FN) 
 - Precision = TP / (TP + FP)  
-- **Recall = TP / (TP + FN)  
+- Recall = TP / (TP + FN)  
 
 ### Final Results
 
@@ -89,7 +84,6 @@ Recall: 0.50
 _________________________________________________________________________________________________________________________________________________________________________________________
 These numbers represent a strong balance: 71% of alerts were correct, and the system caught half of all real attacks. This is realistic for anomaly-based detection, which is inherently noisy and incomplete.
 __________________________________________________________________________________________________________________________________________________________________________________________
-
 Threshold Tuning
 I experimented with different thresholds for each detector:
 
@@ -116,7 +110,7 @@ Missed Attacks
 Some attacks were missed due to:
 •	borderline travel speeds
 •	admin activity near the edge of business hours
-•	low volume brute force attempts
+•	low-volume brute-force attempts
 Interpretation
 Precision and recall show that the system is:
 •	reasonably accurate
@@ -140,4 +134,3 @@ It was especially helpful when I needed to interpret error messages or verify th
 ============================================================================================================================================================================================
 Conclusion
 This project strengthened my understanding of identity security and anomaly detection. I built four detectors, tuned them, and evaluated their performance using precision and recall. The final system is explainable and practical, demonstrating the real-world trade-offs between attack detection and noise minimization.
-===========================================================================v================================================================================================================
